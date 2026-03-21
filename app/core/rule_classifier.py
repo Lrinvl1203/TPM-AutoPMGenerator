@@ -12,10 +12,11 @@ import re
 from pathlib import Path
 from typing import Optional
 
+from app.config.logger import setup_logger
 from app.config.settings import RULE_CONFIDENCE_SCORE, RULE_TABLE_CONFIDENCE_SCORE
 from app.models.schemas import PMItem, PMPeriod, OCRPageResult
 
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 # 영역 분류 설정 로드
 _config_path = Path(__file__).parent.parent / "config" / "area_taxonomy.json"

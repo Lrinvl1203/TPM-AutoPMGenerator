@@ -20,9 +20,18 @@ from openpyxl.styles import (
 from openpyxl.utils import get_column_letter
 
 from app.core.checklist_builder import ChecklistBuilder
+from app.config.logger import setup_logger
+from app.config.settings import (
+    EXCEL_AREA_SEP_COLOR,
+    EXCEL_FILL_COL_COLOR,
+    EXCEL_HEADER_COLOR,
+    EXCEL_HEADER_FONT_COLOR,
+    EXCEL_RESULT_COL_COLOR,
+    EXCEL_ROW_HEIGHT,
+)
 from app.models.schemas import PMItem, PMPeriod
 
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 # 스타일 상수
 HEADER_FILL = PatternFill(start_color="1A3A5C", end_color="1A3A5C", fill_type="solid")

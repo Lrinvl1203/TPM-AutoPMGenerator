@@ -14,12 +14,13 @@ from typing import Optional
 
 from dotenv import load_dotenv
 
+from app.config.logger import setup_logger
 from app.config.settings import GEMINI_CHUNK_SIZE, GEMINI_MAX_RETRIES, GEMINI_MODEL
 from app.models.schemas import PMItem, PMItemForGemini, OCRPageResult
 
 load_dotenv()
 
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 # 영역 분류 설정 로드
 _config_path = Path(__file__).parent.parent / "config" / "area_taxonomy.json"

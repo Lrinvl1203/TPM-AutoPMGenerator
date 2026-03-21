@@ -12,11 +12,12 @@ from typing import Optional
 import numpy as np
 from PIL import Image
 
+from app.config.logger import setup_logger
 from app.config.settings import OCR_CONFIDENCE_THRESHOLD, OCR_DEFAULT_DPI
 from app.core.pdf_processor import PDFProcessor
 from app.models.schemas import OCRBlock, OCRPageResult, TableResult
 
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 class OCREngine:
@@ -187,11 +188,15 @@ class OCREngine:
             logger.info(f"OCR 처리 중... ({i + 1}/{len(images)} 페이지)")
             blocks = self.extract_text_from_image(img)
 
-            results.append(OCRPageResult(
-                page=i + 1,
-                blocks=blocks,
-                has_text=len(blocks) > 0,
-            ))
+            if not blocks:
+                logger.warning(f"페이지 {i + 1}: OCR 텍스트 추출 결과 없음")
+                results.append(OCRPageResult(page=i + 1, blocks=[], has_text=False))
+            else:
+                results.append(OCRPageResult(
+                    page=i + 1,
+                    blocks=blocks,
+                    has_text=True,
+                ))
 
             if progress_callback:
                 progress_callback(i + 1, len(images))

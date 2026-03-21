@@ -23,6 +23,16 @@ from app.core.rule_classifier import RuleClassifier
 from app.core.checklist_builder import ChecklistBuilder
 from app.core.export_engine import ExportEngine
 from app.models.schemas import PMItem
+import json
+
+# PM 키워드 로드
+config_path = Path(__file__).parent.parent / "app" / "config" / "area_taxonomy.json"
+try:
+    with open(config_path, "r", encoding="utf-8") as f:
+        TAXONOMY_CONFIG = json.load(f)
+    PM_KEYWORDS = TAXONOMY_CONFIG.get("PM_판별_키워드", [])
+except Exception:
+    PM_KEYWORDS = ["점검", "교체", "청소", "윤활", "주기", "매월", "매년"]
 
 # 페이지 설정
 st.set_page_config(
@@ -229,7 +239,35 @@ def main():
                     st.rerun()
 
             else:
-                st.info("🔔 **[인간의 가치 검증]** AI가 선별한 결과입니다. 표 안의 데이터를 더블클릭하여 **불필요한 내용은 삭제**하거나 **부족한 내용은 직접 타이핑**하여 완벽하게 만드세요.")
+                # 1차 필터링 텍스트 추출 (PM 후보 페이지 모음)
+                pm_text_blocks = []
+                for page in st.session_state.ocr_results:
+                    page_text = "\n".join([b.text for b in page.blocks if b.text])
+                    if any(kw in page_text for kw in PM_KEYWORDS):
+                        pm_text_blocks.append(f"--- [Page {page.page}] ---\n{page_text}")
+                
+                raw_pm_text = "\n\n".join(pm_text_blocks)
+                if not raw_pm_text:
+                    raw_pm_text = "이 매뉴얼 내에 유지보수(PM) 관련 키워드가 포함된 페이지가 없는 것으로 보입니다. 다른 매뉴얼을 확인해 주세요."
+                
+                # PM 필터된 텍스트 다운로드 영역
+                st.info("🔔 **[1차 추출: PM 후보 텍스트 모음]** AI가 구체적인 표 형식으로 가공하기 전, 예방보전 관련 단어(점검, 청소 등)가 쓰인 페이지만 원본에서 발라낸 기초 텍스트입니다. (아래 탭을 열어 확인 및 다운로드 가능)")
+                with st.expander("📄 [PM 후보 텍스트 (Raw)] 전체 보기 및 1차 텍스트 다운로드"):
+                    st.text_area("PM 대상 후보 원본 텍스트", raw_pm_text, height=200, disabled=True)
+                    export_filename = f"Filtered_PM_RawText_{st.session_state.job_time}.txt"
+                    export_path = outputs_dir / export_filename
+                    with open(export_path, "w", encoding="utf-8") as f:
+                        f.write(raw_pm_text)
+                    with open(export_path, "rb") as file:
+                        st.download_button("📥 1차 발라낸 PM 원본 텍스트 전부 다운로드 (.txt)", data=file, file_name=export_filename, mime="text/plain")
+
+                st.markdown("---")
+                
+                # 기존 인간의 가치 검증 에디터 영역
+                if st.session_state.pm_items:
+                    st.success(f"🤖 **[인간의 가치 검증]** AI가 총 {len(st.session_state.pm_items)}건의 보전 항목을 표 형태로 구조화했습니다. 표 안의 데이터를 더블클릭하여 **불필요한 내용은 삭제**하거나 **부족한 내용은 직접 타이핑**하여 완벽하게 만드세요.")
+                else:
+                    st.warning("⚠️ **[AI 구조화 실패(0건)]** 기계가 명확한 CILR(점검/교체 등) 표 형식이나 문장을 구조화하지 못해 목록이 비어있습니다. 위의 '1차 추출 텍스트'를 보고 엑셀 표 빈칸에 직접 내용을 타이핑하여 점검표를 구축해 주세요.")
                 
                 # 데이터 에디터 기능 제공
                 edited_df = st.data_editor(

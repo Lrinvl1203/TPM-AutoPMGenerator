@@ -12,7 +12,9 @@ from typing import Optional
 import fitz  # PyMuPDF
 from PIL import Image
 
-logger = logging.getLogger(__name__)
+from app.config.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 
 class PDFProcessor:
@@ -39,7 +41,11 @@ class PDFProcessor:
         if not path.exists():
             raise FileNotFoundError(f"PDF 파일을 찾을 수 없습니다: {file_path}")
 
-        doc = fitz.open(file_path)
+        try:
+            doc = fitz.open(file_path)
+        except fitz.FileDataError as e:
+            raise ValueError(f"PDF 파일이 손상되었거나 지원하지 않는 형식입니다: {e}") from e
+
         metadata = {
             "file_path": str(path.absolute()),
             "file_name": path.name,
