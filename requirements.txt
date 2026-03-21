@@ -1,0 +1,37 @@
+# PM Checklist Automator - Requirements
+# Python 3.11 recommended
+
+# === OCR & PDF ===
+paddleocr==2.8.1
+paddlepaddle==2.6.1
+PyMuPDF==1.24.0
+pdf2image==1.17.0
+Pillow==11.0.0
+
+# === AI Classification (Gemini) ===
+google-genai>=1.0.0
+
+# === Web Framework ===
+fastapi==0.115.0
+uvicorn==0.32.0
+python-multipart==0.0.18
+
+# === Data & Validation ===
+pydantic==2.9.0
+pandas==2.2.3
+
+# === Export ===
+openpyxl==3.1.5
+python-docx==1.1.2
+reportlab==4.2.5
+
+# === Database (MVP-2) ===
+# sqlalchemy==2.0.36
+# psycopg2-binary==2.9.10
+# redis==5.1.1
+
+# === UI ===
+streamlit==1.40.0
+
+# === Utilities ===
+python-dotenv==1.0.1
