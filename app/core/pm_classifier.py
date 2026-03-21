@@ -239,32 +239,4 @@ PM 항목 판별 기준:
         logger.error(f"청크 처리 실패 (최대 재시도 초과): 페이지 {chunk['pages']}")
         return []
 
-    def _extract_json_from_response(self, text: str) -> list[dict]:
-        """
-        응답 텍스트에서 JSON 추출 (fallback 파서)
 
-        ```json ... ``` 블록이나 [ ... ] 배열을 추출합니다.
-        """
-        text = text.strip()
-
-        # JSON 블록 추출 시도
-        if "```json" in text:
-            start = text.index("```json") + 7
-            end = text.index("```", start)
-            text = text[start:end].strip()
-        elif "```" in text:
-            start = text.index("```") + 3
-            end = text.index("```", start)
-            text = text[start:end].strip()
-
-        # [ ] 배열 추출
-        if "[" in text:
-            start = text.index("[")
-            end = text.rindex("]") + 1
-            text = text[start:end]
-
-        try:
-            return json.loads(text)
-        except json.JSONDecodeError:
-            logger.error(f"JSON 파싱 최종 실패: {text[:200]}...")
-            return []
