@@ -3,7 +3,7 @@
 
 # === OCR & PDF ===
 paddleocr==2.8.1
-paddlepaddle==2.6.1
+paddlepaddle>=2.6.1
 PyMuPDF==1.24.0
 pdf2image==1.17.0
 Pillow==11.0.0
