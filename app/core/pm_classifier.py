@@ -14,6 +14,7 @@ from typing import Optional
 
 from dotenv import load_dotenv
 
+from app.config.settings import GEMINI_CHUNK_SIZE, GEMINI_MAX_RETRIES, GEMINI_MODEL
 from app.models.schemas import PMItem, PMItemForGemini, OCRPageResult
 
 load_dotenv()
@@ -36,7 +37,7 @@ class PMClassifier:
         self,
         api_key: Optional[str] = None,
         model: Optional[str] = None,
-        max_retries: int = 3,
+        max_retries: Optional[int] = None,
     ):
         """
         Args:
@@ -45,8 +46,8 @@ class PMClassifier:
             max_retries: API 호출 최대 재시도 횟수
         """
         self.api_key = api_key or os.getenv("GEMINI_API_KEY", "")
-        self.model = model or os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-        self.max_retries = max_retries
+        self.model = model or GEMINI_MODEL
+        self.max_retries = max_retries if max_retries is not None else GEMINI_MAX_RETRIES
         self._client = None
 
     @property
@@ -101,7 +102,7 @@ class PMClassifier:
     def _build_chunks(
         self,
         ocr_results: list[OCRPageResult],
-        pages_per_chunk: int = 5,
+        pages_per_chunk: Optional[int] = None,
     ) -> list[dict]:
         """
         OCR 결과를 청크로 분할 (사전 키워드 필터링 포함)
@@ -116,6 +117,7 @@ class PMClassifier:
         chunks: list[dict] = []
         current_text = ""
         current_pages: list[int] = []
+        actual_pages_per_chunk = pages_per_chunk or GEMINI_CHUNK_SIZE
 
         for page_result in ocr_results:
             # 페이지 텍스트 합치기
@@ -131,7 +133,7 @@ class PMClassifier:
             current_pages.append(page_result.page)
 
             # 청크 크기 도달 시 분할
-            if len(current_pages) >= pages_per_chunk:
+            if len(current_pages) >= actual_pages_per_chunk:
                 chunks.append({
                     "text": current_text.strip(),
                     "pages": current_pages.copy(),

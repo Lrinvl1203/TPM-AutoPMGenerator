@@ -12,6 +12,7 @@ from typing import Optional
 import numpy as np
 from PIL import Image
 
+from app.config.settings import OCR_CONFIDENCE_THRESHOLD, OCR_DEFAULT_DPI
 from app.core.pdf_processor import PDFProcessor
 from app.models.schemas import OCRBlock, OCRPageResult, TableResult
 
@@ -81,7 +82,7 @@ class OCREngine:
                     text=text,
                     confidence=round(confidence, 4),
                     bbox=bbox,
-                    low_confidence=confidence < 0.7,
+                    low_confidence=confidence < OCR_CONFIDENCE_THRESHOLD,
                 )
                 blocks.append(block)
 
@@ -90,7 +91,7 @@ class OCREngine:
     def extract_text_from_pdf(
         self,
         file_path: str,
-        dpi: int = 200,
+        dpi: Optional[int] = None,
         progress_callback: Optional[callable] = None,
         force_ocr: bool = False,
     ) -> list[OCRPageResult]:
@@ -117,7 +118,8 @@ class OCREngine:
             try:
                 # PaddleOCR이 설치되어 있는지 확인 (지연 초기화 호출)
                 _ = self.ocr
-                return self._extract_from_scanned_pdf(file_path, dpi, progress_callback)
+                actual_dpi = dpi or OCR_DEFAULT_DPI
+                return self._extract_from_scanned_pdf(file_path, actual_dpi, progress_callback)
             except ImportError:
                 logger.error("PaddleOCR 패키지가 설치되어 있지 않아 OCR을 수행할 수 없습니다.")
                 # Fallback: OCR 없이 빈 결과 또는 네이티브 텍스트 추출 시도

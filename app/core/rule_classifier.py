@@ -12,6 +12,7 @@ import re
 from pathlib import Path
 from typing import Optional
 
+from app.config.settings import RULE_CONFIDENCE_SCORE, RULE_TABLE_CONFIDENCE_SCORE
 from app.models.schemas import PMItem, PMPeriod, OCRPageResult
 
 logger = logging.getLogger(__name__)
@@ -147,7 +148,7 @@ class RuleClassifier:
                     method=method,
                     standard_value=standard,
                     source_page=page_num,
-                    confidence=0.6,
+                    confidence=RULE_TABLE_CONFIDENCE_SCORE,
                     note="규칙 기반 추출",
                 ))
 
@@ -181,7 +182,7 @@ class RuleClassifier:
                     method=self._detect_method(line),
                     standard_value=self._detect_standard_value(line),
                     source_page=page_num,
-                    confidence=0.5,
+                    confidence=RULE_CONFIDENCE_SCORE,
                     note="규칙 기반 추출 (문장)",
                 ))
 
