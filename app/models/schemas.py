@@ -4,11 +4,24 @@ PM Checklist Automator — 데이터 모델 정의
 Pydantic 기반 데이터 모델. Gemini API Structured Output 스키마로도 사용됩니다.
 """
 
+import re
 import uuid
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field
+import emoji
+from pydantic import BaseModel, Field, model_validator
+
+
+def clean_text(v: str | None) -> str | None:
+    """텍스트에서 이모지 및 제어 문자를 제거"""
+    if not isinstance(v, str):
+        return v
+    # 1. 제어 문자 제거 (개행 \n, 탭 \t 은 제외)
+    v = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]', '', v)
+    # 2. 이모지 제거
+    v = emoji.replace_emoji(v, replace='')
+    return v.strip()
 
 
 class PMPeriod(str, Enum):
@@ -79,6 +92,15 @@ class PMItem(BaseModel):
         description="특이사항 및 추가 설명"
     )
 
+    @model_validator(mode='before')
+    @classmethod
+    def sanitize_strings(cls, data: any) -> any:
+        if isinstance(data, dict):
+            for k, v in data.items():
+                if isinstance(v, str):
+                    data[k] = clean_text(v)
+        return data
+
 
 class PMItemForGemini(BaseModel):
     """
@@ -112,7 +134,7 @@ class PMItemForGemini(BaseModel):
     )
     source_page: Optional[int] = Field(
         default=None,
-        description="원본 PDF 페이지 번호"
+        description="항목이 발견된 원본 '--- 페이지 X ---'의 X 번호 (반드시 정수)"
     )
     confidence: float = Field(
         default=0.9,
@@ -120,8 +142,17 @@ class PMItemForGemini(BaseModel):
     )
     note: Optional[str] = Field(
         default=None,
-        description="특이사항 또는 null"
+        description="참조한 원본 문장(원문 인용) 또는 특이사항 기록"
     )
+
+    @model_validator(mode='before')
+    @classmethod
+    def sanitize_strings(cls, data: any) -> any:
+        if isinstance(data, dict):
+            for k, v in data.items():
+                if isinstance(v, str):
+                    data[k] = clean_text(v)
+        return data
 
     def to_pm_item(self) -> PMItem:
         """PMItemForGemini → PMItem 변환"""
@@ -182,6 +213,15 @@ class OCRBlock(BaseModel):
     confidence: float = Field(default=1.0, description="인식 신뢰도")
     bbox: Optional[list] = Field(default=None, description="바운딩 박스 좌표")
     low_confidence: bool = Field(default=False, description="낮은 신뢰도 플래그")
+
+    @model_validator(mode='before')
+    @classmethod
+    def sanitize_strings(cls, data: any) -> any:
+        if isinstance(data, dict):
+            for k, v in data.items():
+                if isinstance(v, str):
+                    data[k] = clean_text(v)
+        return data
 
 
 class OCRPageResult(BaseModel):

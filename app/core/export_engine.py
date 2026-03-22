@@ -100,18 +100,22 @@ class ExportEngine:
         """
         wb = Workbook()
 
+        from app.models.schemas import clean_text
+        safe_manual = clean_text(manual_name) or "매뉴얼"
+        safe_equip = clean_text(equipment_name) or "설비"
+
         # 1. 요약 시트
-        self._create_summary_sheet(wb, manual_name, equipment_name, all_items)
+        self._create_summary_sheet(wb, safe_manual, safe_equip, all_items)
 
         # 2. 주기별 PM 시트
         by_period = self.builder.build_by_period(all_items)
         for period in PMPeriod:
             period_items = by_period.get(period.value, [])
             sheet_name = f"{PERIOD_NAMES[period]} PM"
-            self._create_pm_sheet(wb, sheet_name, period_items, equipment_name)
+            self._create_pm_sheet(wb, sheet_name, period_items, safe_equip)
 
         # 3. 전체 목록 시트
-        self._create_pm_sheet(wb, "전체 목록", all_items, equipment_name)
+        self._create_pm_sheet(wb, "전체 목록", all_items, safe_equip)
 
         # BytesIO로 저장
         output = BytesIO()
