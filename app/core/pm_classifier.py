@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import time
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -199,7 +200,8 @@ PM 항목 판별 기준:
 
         user_prompt = f"다음 설비 매뉴얼 텍스트에서 PM 항목을 추출하세요:\n\n{chunk['text']}"
 
-        for attempt in range(self.max_retries):
+        attempt = 0
+        while attempt < self.max_retries:
             try:
                 response = self.client.models.generate_content(
                     model=self.model,
@@ -233,15 +235,31 @@ PM 항목 판별 기준:
                 return pm_items
 
             except json.JSONDecodeError as e:
-                logger.warning(f"JSON 파싱 실패 (시도 {attempt + 1}/{self.max_retries}): {e}")
+                error_msg = str(e)
+                logger.warning(f"JSON 파싱 실패 (시도 {attempt + 1}/{self.max_retries}): {error_msg}")
             except Exception as e:
-                logger.warning(f"API 호출 실패 (시도 {attempt + 1}/{self.max_retries}): {e}")
+                error_msg = str(e)
+                logger.warning(f"API 호출 실패 (시도 {attempt + 1}/{self.max_retries}): {error_msg}")
 
-            # 지수 백오프
+            # 429 에러 특별 처리 (Gemini 무료 티어 할당량(RPM) 초과)
+            if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
+                match = re.search(r"Please retry in ([\d\.]+)s", error_msg)
+                if match:
+                    wait_time = float(match.group(1)) + 2.0  # 여유분 2초 추가
+                else:
+                    wait_time = 62.0  # 지정되지 않은 경우 기본 약 1분 대기
+                logger.info(f"요율 제한(Rate Limit 429) 감지. {wait_time:.1f}초 대기 후 재시도합니다...")
+                time.sleep(wait_time)
+                # 429의 경우 일반 재시도 횟수를 차감하지 않고 무한루프를 돌거나 매우 많이 시도하도록 함
+                continue
+
+            # 일반 에러 시 지수 백오프
             if attempt < self.max_retries - 1:
                 wait_time = 2 ** attempt
                 logger.info(f"{wait_time}초 후 재시도...")
                 time.sleep(wait_time)
+            
+            attempt += 1
 
         logger.error(f"청크 처리 실패 (최대 재시도 초과): 페이지 {chunk['pages']}")
         return []
